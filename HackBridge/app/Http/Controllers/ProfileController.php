@@ -1,60 +1,62 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
+use App\Models\Skill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
-    public function edit(Request $request): View
+    public function edit()
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
+        $user   = Auth::user()->load('skills');
+        $skills = Skill::orderBy('category')->orderBy('name')->get();
+        return view('profile.edit', compact('user', 'skills'));
     }
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request)
     {
-        $request->user()->fill($request->validated());
+        $request->validate([
+            'name'         => 'required|string|max:100',
+            'department'   => 'nullable|string',
+            'year'         => 'nullable|integer|min:1|max:5',
+            'bio'          => 'nullable|string|max:500',
+            'github'       => 'nullable|url',
+            'linkedin'     => 'nullable|url',
+            'availability' => 'required|in:open,looking,busy,in_team',
+        ]);
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user = Auth::user();
+        $user->update($request->only('name','department','year','bio','github','linkedin','availability'));
+
+        // Update skills
+        if ($request->has('skills')) {
+            $syncData = [];
+            foreach ($request->skills as $skillId => $level) {
+                $syncData[$skillId] = ['level' => $level];
+            }
+            $user->skills()->sync($syncData);
+        } else {
+            $user->skills()->detach();
         }
 
-        $request->user()->save();
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return back()->with('success', 'Profile updated successfully!');
     }
 
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request)
     {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-
+        $request->validateWithBag('userDeletion', ['password' => ['required', 'current_password']]);
+        $user = Auth::user();
         Auth::logout();
-
         $user->delete();
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+        return redirect('/');
+    }
 
-        return Redirect::to('/');
+    public function show($id)
+    {
+        $user = \App\Models\User::with('skills', 'projects')->findOrFail($id);
+        return view('profile.show', compact('user'));
     }
 }
