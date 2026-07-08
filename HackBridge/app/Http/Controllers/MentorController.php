@@ -12,7 +12,10 @@ class MentorController extends Controller
 {
     public function index()
     {
-        $mentors       = Mentor::with('user')->where('is_active', true)->get();
+         $mentors       = Mentor::with('user')
+                                ->where('is_active', true)
+                                ->where('user_id', '!=', Auth::id())
+                                ->get();
         $isMentor      = Mentor::where('user_id', Auth::id())->exists();
         $myRequests    = MentorRequest::where('requester_id', Auth::id())
                                       ->with('mentor.user', 'project')
@@ -50,6 +53,9 @@ class MentorController extends Controller
 
     public function requestMentor(Request $request, Mentor $mentor)
     {
+        if ($mentor->user_id === Auth::id()) {
+            return back()->with('error', 'You cannot request mentorship from yourself.');
+        }
         $request->validate([
             'message'    => 'required|string|min:20',
             'project_id' => 'nullable|exists:projects,id',

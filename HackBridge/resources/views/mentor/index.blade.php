@@ -63,11 +63,13 @@
         <div class="hack-footer">
             <form method="POST" action="{{ route('mentors.respond', $r) }}">
                 @csrf
+                @method('PATCH')
                 <input type="hidden" name="status" value="accepted">
                 <button type="submit" class="btn btn-primary btn-sm">Accept</button>
             </form>
             <form method="POST" action="{{ route('mentors.respond', $r) }}">
                 @csrf
+                @method('PATCH')
                 <input type="hidden" name="status" value="rejected">
                 <button type="submit" class="btn btn-outline btn-sm">Decline</button>
             </form>
@@ -110,7 +112,7 @@
 @endforelse
 </div>
 
-{{-- Available Mentors --}}
+{{-- Available Mentors (already excludes the logged-in user's own profile — see MentorController@index) --}}
 <div class="sec-header" style="margin-bottom:14px;">
     <div class="sec-title">🧑‍🏫 Available Mentors</div>
 </div>
@@ -152,5 +154,4 @@ function toggleForm(id) {
     el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 </script>
-
 @endsection
