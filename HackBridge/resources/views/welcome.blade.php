@@ -13,6 +13,18 @@
 {{-- Landing Page CSS --}}
 <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
 </head>
+@if ($errors->any())
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    openModal('{{ old('first_name') ? 'signup' : 'login' }}');
+});
+</script>
+<div style="position:fixed;top:20px;right:20px;background:#EF4444;color:white;padding:12px 20px;border-radius:8px;z-index:9999;">
+    @foreach ($errors->all() as $error)
+        <div>{{ $error }}</div>
+    @endforeach
+</div>
+@endif
 <body>
 
 {{-- ── Ambient Orbs ── --}}
@@ -428,11 +440,25 @@
                     </select>
                 </div>
             </div>
+
+            @if(app()->environment('local'))
+            <div class="form-group-m">
+                <label class="form-label-m">Sign Up As <span style="font-weight:400;color:var(--muted,#888);">(dev only — hidden outside local env)</span></label>
+                <select name="role" class="form-input">
+                    <option value="user" selected>Student / User</option>
+                    <option value="admin">Admin (testing only)</option>
+                </select>
+            </div>
+            @endif
+
             <div class="form-group-m">
                 <label class="form-label-m">Password</label>
                 <input type="password" name="password" class="form-input" placeholder="Create a strong password" required>
             </div>
-            <input type="hidden" name="password_confirmation" id="pwd_confirm">
+            <div class="form-group-m">
+                <label class="form-label-m">Confirm Password</label>
+                <input type="password" name="password_confirmation" class="form-input" placeholder="Confirm your password" required>
+            </div>
             <button type="submit" class="btn-modal-submit">Create My Profile →</button>
         </form>
 
@@ -444,13 +470,6 @@
 
 {{-- Landing Page JS --}}
 <script src="{{ asset('js/landing.js') }}"></script>
-
-{{-- Copy password to confirmation field --}}
-<script>
-document.querySelector('[name="password"]').addEventListener('input', function() {
-    document.getElementById('pwd_confirm').value = this.value;
-});
-</script>
 
 </body>
 </html>
