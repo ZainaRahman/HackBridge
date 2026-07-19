@@ -12,6 +12,9 @@
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
                 <span class="chip chip-{{ $project->category === 'AI' ? 'violet' : ($project->category === 'Web' ? 'blue' : 'cyan') }}">{{ $project->category }}</span>
                 <span class="chip chip-green">{{ ucfirst($project->status) }}</span>
+                @if($project->isFull())
+                <span class="chip chip-orange">🔒 Team Full</span>
+                @endif
                 @if($project->hackathon)
                 <span class="chip chip-orange">🏆 {{ $project->hackathon->title }}</span>
                 @endif
@@ -20,9 +23,13 @@
             <p style="font-size:14px;color:var(--muted);line-height:1.7;">{{ $project->description }}</p>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Team size</div>
-            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--white);">{{ $project->team_size }}</div>
-            <div style="font-size:11px;color:var(--muted);">members needed</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Team</div>
+            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--white);">
+                {{ $project->acceptedMembersCount() }}<span style="color:var(--muted);font-size:16px;">/{{ $project->team_size }}</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);">
+                {{ $project->isFull() ? 'team full' : $project->remainingSlots() . ' ' . Str::plural('spot', $project->remainingSlots()) . ' open' }}
+            </div>
         </div>
     </div>
 
@@ -60,6 +67,13 @@
         @endif
     </div>
 </div>
+@if(auth()->id() === $project->owner_id)
+<div class="card" style="margin-bottom:16px;">
+    <a href="{{ route('projects.matches', $project->id) }}" class="btn btn-primary" style="width:100%;justify-content:center;">
+        🎯 View Suggested Teammates
+    </a>
+</div>
+@endif
 
 {{-- Apply Section --}}
 @if(auth()->id() !== $project->owner_id && $project->status === 'recruiting')
@@ -69,6 +83,12 @@
         <div style="font-size:32px;margin-bottom:8px;">✅</div>
         <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--white);margin-bottom:4px;">Application Sent!</div>
         <div style="font-size:13px;color:var(--muted);">The team leader will review your application and get back to you.</div>
+    </div>
+    @elseif($project->isFull())
+    <div style="text-align:center;padding:20px;">
+        <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--white);margin-bottom:4px;">This team is full</div>
+        <div style="font-size:13px;color:var(--muted);">All {{ $project->team_size }} spots have been filled.</div>
     </div>
     @else
     <div class="card-title">Apply to Join This Team</div>
@@ -104,18 +124,22 @@
         </div>
         <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:12px;">{{ $app->pitch }}</p>
         @if($app->status === 'pending')
-        <div style="display:flex;gap:8px;">
-            <form method="POST" action="{{ route('applications.respond', $app->id) }}">
-                @csrf @method('PATCH')
-                <input type="hidden" name="status" value="accepted">
-                <button type="submit" class="btn btn-green btn-sm">✓ Accept</button>
-            </form>
-            <form method="POST" action="{{ route('applications.respond', $app->id) }}">
-                @csrf @method('PATCH')
-                <input type="hidden" name="status" value="rejected">
-                <button type="submit" class="btn btn-danger btn-sm">✕ Reject</button>
-            </form>
-        </div>
+            @if($project->isFull())
+            <div style="font-size:12px;color:var(--muted);">Team is full — reject or remove another member to free a spot before accepting.</div>
+            @else
+            <div style="display:flex;gap:8px;">
+                <form method="POST" action="{{ route('applications.respond', $app->id) }}">
+                    @csrf @method('PATCH')
+                    <input type="hidden" name="status" value="accepted">
+                    <button type="submit" class="btn btn-green btn-sm">✓ Accept</button>
+                </form>
+                <form method="POST" action="{{ route('applications.respond', $app->id) }}">
+                    @csrf @method('PATCH')
+                    <input type="hidden" name="status" value="rejected">
+                    <button type="submit" class="btn btn-danger btn-sm">✕ Reject</button>
+                </form>
+            </div>
+            @endif
         @endif
     </div>
     @endforeach

@@ -45,7 +45,13 @@ class ProjectController extends Controller
             'title'           => $request->title,
             'description'     => $request->description,
             'category'        => $request->category,
-            'required_skills' => $request->required_skills ? explode(',', $request->required_skills) : [],
+            'required_skills' => $request->required_skills
+            ? collect(explode(',', $request->required_skills))
+            ->map(fn ($s) => trim($s))
+            ->filter()
+            ->values()
+            ->toArray()
+            : [],
             'prerequisites'   => $request->prerequisites,
             'team_size'       => $request->team_size,
             'hackathon_id'    => $request->hackathon_id ?: null,
@@ -69,6 +75,10 @@ class ProjectController extends Controller
     public function apply(Request $request, Project $project)
     {
         $request->validate(['pitch' => 'required|string|min:20']);
+
+        if ($project->isFull()) {
+            return back()->with('error', 'This team is already full.');
+        }
 
         $already = ProjectApplication::where('project_id', $project->id)
                                       ->where('user_id', Auth::id())
@@ -96,7 +106,27 @@ class ProjectController extends Controller
     public function updateApplication(Request $request, ProjectApplication $application)
     {
         if ($application->project->owner_id !== Auth::id()) abort(403);
+
+        $request->validate(['status' => 'required|in:accepted,rejected']);
+
+        if ($request->status === 'accepted' && $application->project->isFull()) {
+            return back()->with('error', 'This team is already full — reject or reassign another member first.');
+        }
+
         $application->update(['status' => $request->status]);
+
+        // Once the team reaches its target size, close recruiting automatically
+        // so the project drops off the open-projects listing and stops accepting
+        // new applications. Only flips 'recruiting' -> 'in_progress' (a valid enum
+        // value per the projects migration); never touches 'completed' or any
+        // manually-set status.
+        if ($request->status === 'accepted') {
+            $project = $application->project;
+            if ($project->status === 'recruiting' && $project->isFull()) {
+                $project->update(['status' => 'in_progress']);
+            }
+        }
+
         return back()->with('success', 'Application ' . $request->status . '.');
     }
 }

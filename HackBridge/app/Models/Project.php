@@ -26,4 +26,25 @@ class Project extends Model
     public function sharedLinks()  { return $this->hasMany(SharedLink::class); }
     public function ghostFlags()   { return $this->hasMany(GhostFlag::class); }
     public function achievements() { return $this->hasMany(Achievement::class); }
+    public function files()        { return $this->hasMany(ProjectFile::class); }
+
+    // ── Team size helpers ──
+    // team_size is the desired total headcount (owner + accepted teammates).
+    // These are read-only counts computed from existing data — they don't
+    // write any new project status value, so they're safe to use immediately
+    // without needing to know the projects.status enum's allowed values.
+    public function acceptedMembersCount(): int
+    {
+        return 1 + $this->applications()->where('status', 'accepted')->count(); // +1 for the owner
+    }
+
+    public function remainingSlots(): int
+    {
+        return max(0, $this->team_size - $this->acceptedMembersCount());
+    }
+
+    public function isFull(): bool
+    {
+        return $this->remainingSlots() === 0;
+    }
 }
