@@ -10,13 +10,15 @@ use App\Http\Controllers\MentorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\MatchController;
+use App\Http\Controllers\UserSkillController;
 use Illuminate\Support\Facades\Route;
 
 // ── Public ──
 Route::get('/', fn() => view('welcome'))->name('home');
 
 // ── Authenticated ──
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'verified', 'prevent-back-history'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -36,7 +38,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/projects/{project}/apply',            [ProjectController::class, 'apply'])            ->name('projects.apply');
     Route::patch('/applications/{application}/respond', [ProjectController::class, 'updateApplication'])->name('applications.respond');
 
-    // Workspace (Kanban + Announcements + Links + Ghost)
+    // Workspace (Kanban + Announcements + Links + Resource Hub + Ghost)
     Route::get('/projects/{project}/workspace',                    [WorkspaceController::class, 'show'])              ->name('workspace.show');
     Route::post('/projects/{project}/tasks',                       [WorkspaceController::class, 'storeTask'])         ->name('workspace.task.store');
     Route::patch('/tasks/{task}/status',                           [WorkspaceController::class, 'updateTask'])        ->name('workspace.task.update');
@@ -44,6 +46,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/projects/{project}/announcements',               [WorkspaceController::class, 'storeAnnouncement'])->name('workspace.announcement.store');
     Route::post('/projects/{project}/links',                       [WorkspaceController::class, 'storeLink'])        ->name('workspace.link.store');
     Route::delete('/links/{link}',                                 [WorkspaceController::class, 'deleteLink'])        ->name('workspace.link.delete');
+    Route::post('/projects/{project}/resources',                   [WorkspaceController::class, 'storeResource'])    ->name('workspace.resource.store');
+    Route::get('/resources/{resource}/download',                   [WorkspaceController::class, 'downloadResource'])->name('workspace.resource.download');
+    Route::delete('/resources/{resource}',                         [WorkspaceController::class, 'deleteResource'])   ->name('workspace.resource.delete');
     Route::post('/projects/{project}/ghost-flag',                  [WorkspaceController::class, 'flagGhost'])         ->name('workspace.ghost.flag');
 
     // Hackathons
@@ -71,10 +76,15 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/mentors/become',                            [MentorController::class, 'becomeMentor'])  ->name('mentors.become');
     Route::post('/mentors/{mentor}/request',                  [MentorController::class, 'requestMentor']) ->name('mentors.request');
     Route::patch('/mentor-requests/{mentorRequest}/respond',  [MentorController::class, 'respondRequest'])->name('mentors.respond');
+    Route::get('/projects/{project}/matches', [MatchController::class, 'projectMatches'])->name('projects.matches');
+    Route::get('/projects/{project}/matches/me', [MatchController::class, 'myMatch'])->name('projects.matches.me');
+    Route::get('/profile/skills',    [UserSkillController::class, 'edit'])  ->name('skills.edit');
+     Route::post('/profile/skills',   [UserSkillController::class, 'sync'])  ->name('skills.sync');
+    Route::delete('/profile/skills/{skill}', [UserSkillController::class, 'destroy'])->name('skills.destroy');
 });
 
 // ── Admin ──
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin', 'prevent-back-history'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/',                           [AdminController::class, 'dashboard'])       ->name('dashboard');
     Route::get('/hackathons',                 [AdminController::class, 'hackathons'])      ->name('hackathons');
     Route::post('/hackathons',                [AdminController::class, 'storeHackathon'])  ->name('hackathons.store');
