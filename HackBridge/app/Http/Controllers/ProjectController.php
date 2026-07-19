@@ -10,19 +10,38 @@ use Illuminate\Support\Facades\Auth;
 
 class ProjectController extends Controller
 {
-    public function index(Request $request)
-    {
-        $query = Project::with('owner', 'hackathon')->where('status', 'recruiting');
+   public function index(Request $request)
+{
+    $query = Project::with('owner', 'hackathon')->where('status', 'recruiting');
 
-        if ($request->category) $query->where('category', $request->category);
-        if ($request->dept)     $query->where('dept_preference', $request->dept);
-        if ($request->search)   $query->where('title', 'like', '%'.$request->search.'%');
-
-        $projects   = $query->latest()->paginate(9);
-        $hackathons = Hackathon::orderBy('deadline')->get();
-
-        return view('projects.index', compact('projects', 'hackathons'));
+    if ($request->category) {
+        $query->where('category', $request->category);
     }
+
+    if ($request->dept && $request->dept !== 'Any') {
+        $query->where(function ($q) use ($request) {
+            $q->where('dept_preference', $request->dept)
+              ->orWhere('dept_preference', 'Any');
+        });
+    }
+
+    if ($request->search) {
+        $query->where('title', 'like', '%'.$request->search.'%');
+    }
+
+    $projects   = $query->latest()->paginate(9);
+    $hackathons = Hackathon::orderBy('deadline')->get();
+
+    $category   = Project::whereNotNull('category')
+                    ->pluck('category')
+                    ->unique()
+                    ->values();
+
+    // Map skill IDs to skill names for rendering chips
+    $skillsMap  = \App\Models\Skill::pluck('name', 'id');
+
+    return view('projects.index', compact('projects', 'hackathons', 'category', 'skillsMap'));
+}
 
     public function create()
     {
@@ -64,13 +83,21 @@ class ProjectController extends Controller
     }
 
     public function show(Project $project)
-    {
-        $project->load('owner.skills', 'applications.user', 'hackathon');
-        $alreadyApplied = ProjectApplication::where('project_id', $project->id)
-                                             ->where('user_id', Auth::id())
-                                             ->exists();
-        return view('projects.show', compact('project', 'alreadyApplied'));
-    }
+{
+    $project->load('owner.skills', 'applications.user', 'hackathon');
+
+    // Extract skill IDs from the project cast array
+    $skillIds = is_array($project->required_skills) ? $project->required_skills : [];
+
+    // Fetch skill objects matching those IDs
+    $skills = Skill::whereIn('id', $skillIds)->get();
+
+    $alreadyApplied = ProjectApplication::where('project_id', $project->id)
+                                         ->where('user_id', Auth::id())
+                                         ->exists();
+
+    return view('projects.show', compact('project', 'alreadyApplied', 'skills'));
+}
 
     public function apply(Request $request, Project $project)
     {

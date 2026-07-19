@@ -13,14 +13,14 @@
     <input name="search" class="filter-input" placeholder="🔍 Search projects..." value="{{ request('search') }}" style="flex:1;min-width:200px;">
     <select name="category" class="filter-input">
         <option value="">All Categories</option>
-        @foreach(['AI','Web','Mobile','Hardware','Research','Design','Other'] as $cat)
-        <option value="{{ $cat }}" {{ request('category') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+        @foreach($category as $cat)
+            <option value="{{ $cat }}" {{ request('category') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
         @endforeach
     </select>
     <select name="dept" class="filter-input">
         <option value="">All Departments</option>
         @foreach(['Any','CSE','EEE','ME','CE','ECE'] as $d)
-        <option value="{{ $d }}" {{ request('dept') === $d ? 'selected' : '' }}>{{ $d }}</option>
+            <option value="{{ $d }}" {{ request('dept') === $d ? 'selected' : '' }}>{{ $d }}</option>
         @endforeach
     </select>
     <button type="submit" class="btn btn-primary">Filter</button>
@@ -47,15 +47,25 @@
     <div class="project-card-title">{{ $project->title }}</div>
     <div class="project-card-desc">{{ $project->description }}</div>
 
-    @if($project->required_skills && count($project->required_skills))
-    <div class="project-chips">
-        @foreach(array_slice($project->required_skills, 0, 3) as $skill)
-        <span class="chip chip-blue">{{ $skill }}</span>
-        @endforeach
-        @if(count($project->required_skills) > 3)
-        <span class="chip chip-blue">+{{ count($project->required_skills) - 3 }}</span>
+    {{-- UPDATED SKILLS SECTION --}}
+    @if(!empty($project->required_skills))
+        @php
+            $skillNames = collect($project->required_skills)
+                ->map(fn($id) => $skillsMap[$id] ?? $id)
+                ->filter();
+        @endphp
+
+        @if($skillNames->isNotEmpty())
+            <div class="project-chips">
+                @foreach($skillNames->take(3) as $skill)
+                    <span class="chip chip-blue">{{ $skill }}</span>
+                @endforeach
+
+                @if($skillNames->count() > 3)
+                    <span class="chip chip-blue">+{{ $skillNames->count() - 3 }}</span>
+                @endif
+            </div>
         @endif
-    </div>
     @endif
 
     <div class="project-footer">
