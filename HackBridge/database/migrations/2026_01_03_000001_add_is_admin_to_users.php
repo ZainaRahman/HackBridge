@@ -1,5 +1,5 @@
 <?php
-// FILE: database/migrations/2024_01_03_000001_add_is_admin_to_users.php
+// FILE: database/migrations/2026_01_04_000001_add_is_admin_to_users_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -9,7 +9,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_admin')->default(false)->after('availability');
+            $table->boolean('is_admin')->default(false)->after('password');
         });
     }
 
