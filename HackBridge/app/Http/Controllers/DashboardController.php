@@ -33,9 +33,19 @@ class DashboardController extends Controller
                          ->inRandomOrder()
                          ->limit(4)
                          ->get();
+        
+        $myWorkspaces = Project::where('owner_id', $user->id)
+                               ->orWhereHas('applications', function ($q) use ($user) {
+                                   $q->where('user_id', $user->id)->where('status', 'accepted');
+                               })
+                               ->withCount([
+                                   'tasks as pending_tasks_count' => fn ($q) => $q->whereIn('status', ['todo', 'in_progress']),
+                                   'ghostFlags as ghost_flags_count',
+                               ])
+                               ->get();
 
         return view('dashboard.index', compact(
-            'user', 'hackathons', 'projects', 'suggested',
+            'user', 'hackathons', 'projects', 'suggested', 'myWorkspaces',
             'totalProjects', 'totalMembers', 'myApplications'
         ));
     }
