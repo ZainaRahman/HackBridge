@@ -56,7 +56,18 @@ class ProfileController extends Controller
 
     public function show($id)
     {
-        $user = \App\Models\User::with('skills', 'projects')->findOrFail($id);
+        // 'projects' = teams this user owns; 'joinedProjects' = teams they were
+        // accepted onto as a member (see User::joinedProjects()). Both are shown
+        // on the profile now, not just owned ones.
+        // 'endorsementsReceived.skill' is eager-loaded so the skills list can show
+        // an endorsement count per skill without triggering N+1 queries.
+        $user = \App\Models\User::with([
+            'skills',
+            'projects',
+            'joinedProjects',
+            'endorsementsReceived.skill',
+        ])->findOrFail($id);
+
         return view('profile.show', compact('user'));
     }
 }
