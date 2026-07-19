@@ -13,12 +13,29 @@
 {{-- Landing Page CSS --}}
 <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
 </head>
-@if ($errors->any())
+@php
+    // Decide whether to auto-open a modal on page load, and which one.
+    // Priority: validation errors first (so a failed login/signup reopens the right
+    // form with the error shown), then falls back to the route itself — this covers
+    // someone landing on /login or /register directly (e.g. redirected here by the
+    // `auth` middleware after trying to visit a protected page while logged out).
+    $autoOpenModal = null;
+    if ($errors->any()) {
+        $autoOpenModal = old('first_name') ? 'signup' : 'login';
+    } elseif (request()->routeIs('login')) {
+        $autoOpenModal = 'login';
+    } elseif (request()->routeIs('register')) {
+        $autoOpenModal = 'signup';
+    }
+@endphp
+@if($autoOpenModal)
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    openModal('{{ old('first_name') ? 'signup' : 'login' }}');
+    openModal('{{ $autoOpenModal }}');
 });
 </script>
+@endif
+@if ($errors->any())
 <div style="position:fixed;top:20px;right:20px;background:#EF4444;color:white;padding:12px 20px;border-radius:8px;z-index:9999;">
     @foreach ($errors->all() as $error)
         <div>{{ $error }}</div>
@@ -373,7 +390,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label class="form-label-m">Password</label>
                 <input type="password" name="password" class="form-input" placeholder="••••••••" required>
             </div>
-            <div style="text-align:right;margin-bottom:4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted,#888);cursor:pointer;">
+                    <input type="checkbox" name="remember" value="1" style="width:auto;">
+                    Remember me
+                </label>
                 @if(Route::has('password.request'))
                     <a href="/forgot-password" style="font-size:12px;color:var(--blue);text-decoration:none;font-weight:600;">Forgot password?</a>
                 @endif
@@ -440,16 +461,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </select>
                 </div>
             </div>
-
-            @if(app()->environment('local'))
-            <div class="form-group-m">
-                <label class="form-label-m">Sign Up As <span style="font-weight:400;color:var(--muted,#888);">(dev only — hidden outside local env)</span></label>
-                <select name="role" class="form-input">
-                    <option value="user" selected>Student / User</option>
-                    <option value="admin">Admin (testing only)</option>
-                </select>
-            </div>
-            @endif
 
             <div class="form-group-m">
                 <label class="form-label-m">Password</label>
