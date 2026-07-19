@@ -57,10 +57,10 @@ document.addEventListener('DOMContentLoaded', function() {
     </a>
 
     <ul class="nav-links">
+        <li><a href="#about">About</a></li>
         <li><a href="#features">Features</a></li>
         <li><a href="#hackathons">Hackathons</a></li>
-        <li><a href="#showcase">Showcase</a></li>
-        <li><a href="#about">About</a></li>
+        
     </ul>
 
     <div class="nav-actions">
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </nav>
 
 {{-- ── HERO ── --}}
-<section class="hero">
+<section class="hero" id="about">
     <div class="hero-badge">🔥 Built for BD University Students</div>
 
     <h1 class="hero-title">
@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 
     {{-- Stats --}}
-    <div class="stats-row">
+    <div class="stats-row" >
         <div class="stat-item">
             <div class="stat-num">840<span>+</span></div>
             <div class="stat-desc">Students Registered</div>
