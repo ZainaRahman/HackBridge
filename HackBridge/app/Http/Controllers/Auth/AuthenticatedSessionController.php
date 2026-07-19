@@ -16,7 +16,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
-        return view('auth.login');
+        return view('welcome');
     }
 
     /**
@@ -24,11 +24,26 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Force a clean slate before attempting a fresh login. If a remember-me
+        // cookie from a previous account is still sitting in the browser, this
+        // guarantees it can never silently override whoever is being logged in
+        // right now — logout() clears both the session and queues the remember
+        // cookie for deletion, and Auth::attempt() below then authenticates
+        // strictly based on the submitted credentials.
+        if (Auth::check()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
         $request->authenticate();
 
         $request->session()->regenerate();
+        $request->session()->forget('url.intended');
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $user = Auth::user();
+
+        return redirect()->to($user->is_admin ? route('admin.dashboard') : route('dashboard'));
     }
 
     /**

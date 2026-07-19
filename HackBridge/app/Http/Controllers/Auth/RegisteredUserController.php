@@ -1,4 +1,5 @@
 <?php
+// FILE: app/Http/Controllers/Auth/RegisteredUserController.php
 
 namespace App\Http\Controllers\Auth;
 
@@ -10,42 +11,53 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     */
     public function create(): View
     {
-        return view('auth.register');
+        return view('welcome'); // show landing page (modal opens via JS)
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+        $rules = [
+            'first_name' => ['required', 'string', 'max:50'],
+            'last_name'  => ['required', 'string', 'max:50'],
+            'email'      => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'department' => ['required', 'string'],
+            'year'       => ['required', 'integer', 'min:1', 'max:5'],
+            'password'   => ['required', 'confirmed', Rules\Password::defaults()],
+        ];
+
+        // The "sign up as admin" dropdown is only ever honored in local/dev.
+        // In any other environment the field is ignored entirely, even if submitted.
+        if (app()->environment('local')) {
+            $rules['role'] = ['nullable', 'in:user,admin'];
+        }
+
+        $request->validate($rules);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name'       => $request->first_name . ' ' . $request->last_name,
+            'email'      => $request->email,
+            'password'   => Hash::make($request->password),
+            'department' => $request->department,
+            'university' => $request->university ?? 'KUET',
+            'year'       => $request->year,
+            'availability' => 'open',
         ]);
 
-        event(new Registered($user));
+        if (app()->environment('local') && $request->input('role') === 'admin') {
+            $user->is_admin = true;
+            $user->save();
+        }
 
+        event(new Registered($user));
+        $user->markEmailAsVerified();
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect()->route('dashboard');
     }
 }
