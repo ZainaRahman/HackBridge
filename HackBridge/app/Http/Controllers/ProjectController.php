@@ -6,6 +6,7 @@ use App\Models\Hackathon;
 use App\Models\Project;
 use App\Models\ProjectApplication;
 use Illuminate\Http\Request;
+use App\Models\Skill;
 use Illuminate\Support\Facades\Auth;
 
 class ProjectController extends Controller
